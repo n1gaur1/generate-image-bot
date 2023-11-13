@@ -5,6 +5,9 @@ import fs from 'fs';
 interface Prompts {
   prompt :string,
   negativePrompt: string,
+  width: number,
+  height: number,
+  steps: number,
 };
 const promts = new Map<string, Prompts>();
 
@@ -35,10 +38,23 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
   const negativePrompt = interaction.options.get('negative_prompt')?
     interaction.options.get('negative_prompt')?.value as string :
     promts.get(interaction.user.id)?.negativePrompt as string
+  const width = interaction.options.get('width')?
+    interaction.options.get('width')?.value as number :
+    promts.get(interaction.user.id)?.width as number
+  const height = interaction.options.get('height')?
+    interaction.options.get('height')?.value as number :
+    promts.get(interaction.user.id)?.height as number
+  const steps = interaction.options.get('steps')?
+    interaction.options.get('steps')?.value as number :
+    promts.get(interaction.user.id)?.steps as number
 
-  promts.set(interaction.user.id,
-    {prompt: prompt, negativePrompt: negativePrompt}
-  );
+  promts.set(interaction.user.id,{
+    prompt: prompt,
+    negativePrompt: negativePrompt,
+    width: width,
+    height: height,
+    steps: steps,
+  });
   
   const client = sdwebui({ apiUrl: STABLE_DIFFUSION_URL });
 
@@ -47,11 +63,19 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
     const response = await client.txt2img({
       prompt: prompt,
       negativePrompt: negativePrompt,
-      width: 512,
-      height: 512,
-      steps: 28,
+      width: width,
+      height: height,
+      steps: steps,
       seed: -1,
       batchSize: 1,
+      hires: {
+        steps: 0,
+        denoisingStrength: 0.7,
+        upscaler: "Latent",
+        upscaleBy: 2,
+        resizeWidthTo: 1024,
+        resizeHeigthTo: 1024,
+      }
     });
     console.log('parameters', response.parameters);
 
@@ -67,6 +91,9 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
       `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${fileName}`
     );
   } catch (error) {
+    await interaction.editReply(
+      `ごめんなさい！${interaction.user.displayName}さん！画像生成に失敗したよ🥺`
+    );
     console.log(`${error}`);
   }
 };

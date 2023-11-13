@@ -18,6 +18,24 @@ ReturnType<typeof SlashCommandBuilder.prototype.toJSON>[] => {
           .setDescription("呪文2")
           .setRequired(true)
       )
+      .addIntegerOption((option) =>
+        option
+          .setName("width")
+          .setDescription("横幅")
+          .setRequired(true)
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("height")
+          .setDescription("縦幅")
+          .setRequired(true)
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("steps")
+          .setDescription("ステップ数")
+          .setRequired(true)
+      )
       .toJSON(),
     new SlashCommandBuilder()
       .setName('getimage')
