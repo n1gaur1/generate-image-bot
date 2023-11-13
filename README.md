@@ -1,4 +1,4 @@
-# DuelUtilityBOT
+# generate-image-bot
 
 ## 前提環境
 
