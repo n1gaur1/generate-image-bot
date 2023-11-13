@@ -17,7 +17,7 @@
     "eslint": "^8.53.0"
   },
   "scripts": {
-    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+    "dev": "nodemon --watch src/**/*.ts --exec ts-node src/index.ts",
     "preinstall": "npx only-allow pnpm",
     "build": "prisma generate && tsc",
     "migrate": "prisma migrate deploy --preview-feature",

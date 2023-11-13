@@ -30,7 +30,7 @@ ReturnType<typeof SlashCommandBuilder.prototype.toJSON>[] => {
       )
       .toJSON(),
     new SlashCommandBuilder()
-      .setName('regenetateimage')
+      .setName('regenerateimage')
       .setDescription('前回と同じプロンプトでAIが画像生成します。')
       .toJSON(),
   ];

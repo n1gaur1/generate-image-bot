@@ -6,7 +6,7 @@
     ],
     "module": "CommonJS",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "moduleResolution": "node",
     "types": ["@types/node"],
     "resolveJsonModule": true,

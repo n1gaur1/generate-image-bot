@@ -64,10 +64,7 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
     });
 
     await interaction.editReply(
-      `${interaction.user.displayName}さんが画像生成しました。\n
-      - prompt:「${prompt}」\n
-      - nagativePrompt「${negativePrompt}」\n
-      - fileName:「${fileName}」`
+      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${fileName}`
     );
   } catch (error) {
     console.log(`${error}`);
