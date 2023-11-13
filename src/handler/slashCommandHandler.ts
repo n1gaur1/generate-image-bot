@@ -15,7 +15,7 @@ export const slashCommandHandler = async (interaction: CommandInteraction) => {
 
   switch (commandName) {
     case 'generateimage':
-      generaeImageHandler(interaction);
+      generateImageHandler(interaction);
       break;
     case 'getimage':
       getImageHandler(interaction);
@@ -28,7 +28,7 @@ export const slashCommandHandler = async (interaction: CommandInteraction) => {
   }
 };
 
-const generaeImageHandler = async (interaction: CommandInteraction) => {
+const generateImageHandler = async (interaction: CommandInteraction) => {
   const prompt = interaction.options.get('prompt') ? 
     interaction.options.get('prompt')?.value as string :
     promts.get(interaction.user.id)?.prompt as string
@@ -87,5 +87,9 @@ const getImageHandler = async (interaction: CommandInteraction) => {
 };
 
 const getReGenerateImageHandler = async (interaction: CommandInteraction) => {
-  generaeImageHandler(interaction);
-}
+  if (promts.size !== 0) {
+    generateImageHandler(interaction);
+  } else {
+    await interaction.reply(`前回のプロンプトが見つからなかったよ🥺`);
+  }
+};
