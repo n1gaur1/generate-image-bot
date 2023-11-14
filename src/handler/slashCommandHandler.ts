@@ -14,10 +14,12 @@ interface Prompts {
 const promts = new Map<string, Prompts>();
 const STABLE_DIFFUSION_URL = 'http://127.0.0.1:7860';
 
-const { imgurClientID, imgurClientSecret } = getEnv();
+const { imgurClientID, imgurClientSecret, imgurAccessToken, imgurRefreshToken } = getEnv();
 const imgurClient = new ImgurClient({
+  accessToken: imgurAccessToken,
   clientId: imgurClientID,
   clientSecret: imgurClientSecret,
+  refreshToken: imgurRefreshToken,
 });
 
 export const slashCommandHandler = async (interaction: CommandInteraction) => {
