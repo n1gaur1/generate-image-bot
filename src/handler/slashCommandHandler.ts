@@ -1,7 +1,7 @@
 import { CommandInteraction } from 'discord.js';
 import sdwebui from 'node-sd-webui';
 import fs from 'fs';
-import { ImgurClient } from "imgur"
+import { Dropbox } from "dropbox"
 import { getEnv } from '../lib/env';
 
 interface Prompts {
@@ -14,12 +14,9 @@ interface Prompts {
 const promts = new Map<string, Prompts>();
 const STABLE_DIFFUSION_URL = 'http://127.0.0.1:7860';
 
-const { imgurClientID, imgurClientSecret, imgurAccessToken, imgurRefreshToken } = getEnv();
-const imgurClient = new ImgurClient({
-  accessToken: imgurAccessToken,
-  clientId: imgurClientID,
-  clientSecret: imgurClientSecret,
-  refreshToken: imgurRefreshToken,
+const { dropboxAccessToken } = getEnv();
+const dropboxClient = new Dropbox({
+  accessToken: dropboxAccessToken,
 });
 
 export const slashCommandHandler = async (interaction: CommandInteraction) => {
@@ -96,15 +93,24 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
       fs.writeFileSync(`./out/${fileName}`, image, 'base64');
     });
 
-    const base64data = fs.readFileSync(`./out/${fileName}`, { encoding: "base64" })
-    const imgurResponse = await imgurClient.upload({
-      image: base64data,
-      type: 'base64'
+    const buffer = fs.readFileSync(`./out/${fileName}`);
+    await dropboxClient.filesUpload({
+      path: `/${fileName}`,
+      contents: buffer,
     });
-    console.log(imgurResponse.data);
-
+    await dropboxClient.sharingCreateSharedLinkWithSettings({
+      path: `/${fileName}`,
+    });
+    const sharingLinks = await dropboxClient.sharingListSharedLinks({
+      path: `/${fileName}`,
+      direct_only: true,
+    });
+    const downloadLink = sharingLinks.result.links.map((link) =>
+      link.url.replace('www.dropbox', 'dl.dropboxusercontent')
+    );
+    
     await interaction.editReply(
-      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${imgurResponse.data.link}`
+      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${downloadLink[0]}`
     );
   } catch (error) {
     await interaction.editReply(
