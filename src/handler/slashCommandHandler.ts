@@ -1,6 +1,8 @@
 import { CommandInteraction } from 'discord.js';
 import sdwebui from 'node-sd-webui';
 import fs from 'fs';
+import { ImgurClient } from "imgur"
+import { getEnv } from '../lib/env';
 
 interface Prompts {
   prompt :string,
@@ -10,8 +12,13 @@ interface Prompts {
   steps: number,
 };
 const promts = new Map<string, Prompts>();
-
 const STABLE_DIFFUSION_URL = 'http://127.0.0.1:7860';
+
+const { imgurClientID, imgurClientSecret } = getEnv();
+const imgurClient = new ImgurClient({
+  clientId: imgurClientID,
+  clientSecret: imgurClientSecret,
+});
 
 export const slashCommandHandler = async (interaction: CommandInteraction) => {
   const { commandName } = interaction;
@@ -87,8 +94,15 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
       fs.writeFileSync(`./out/${fileName}`, image, 'base64');
     });
 
+    const base64data = fs.readFileSync(`./out/${fileName}`, { encoding: "base64" })
+    const imgurResponse = await imgurClient.upload({
+      image: base64data,
+      type: 'base64'
+    });
+    console.log(imgurResponse.data);
+
     await interaction.editReply(
-      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${fileName}`
+      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${imgurResponse.data.link}`
     );
   } catch (error) {
     await interaction.editReply(
