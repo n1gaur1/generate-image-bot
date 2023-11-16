@@ -3,6 +3,7 @@
 ## 前提環境
 
 - 実行するホストマシンには以下のパッケージが必要
+    - Stable Diffusion Web UI    
     - node
     - postgresql
 
