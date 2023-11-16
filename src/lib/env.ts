@@ -1,3 +1,5 @@
+import "dotenv/config"
+
 export const getEnv = () => {
   const {
     DISCORD_BOT_TOKEN,
