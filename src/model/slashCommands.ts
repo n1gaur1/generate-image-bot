@@ -36,6 +36,12 @@ ReturnType<typeof SlashCommandBuilder.prototype.toJSON>[] => {
           .setDescription("ステップ数")
           .setRequired(true)
       )
+      .addNumberOption((option) =>
+        option
+          .setName("upscaleby")
+          .setDescription("アップスケール倍数")
+          .setRequired(true)
+      )
       .toJSON(),
     new SlashCommandBuilder()
       .setName('getimage')

@@ -1,7 +1,7 @@
 import { CommandInteraction } from 'discord.js';
 import sdwebui from 'node-sd-webui';
 import fs from 'fs';
-import { ImgurClient } from "imgur"
+import { Dropbox } from "dropbox"
 import { getEnv } from '../lib/env';
 
 interface Prompts {
@@ -10,15 +10,11 @@ interface Prompts {
   width: number,
   height: number,
   steps: number,
+  upScaleBy: number,
 };
+
 const promts = new Map<string, Prompts>();
 const STABLE_DIFFUSION_URL = 'http://127.0.0.1:7860';
-
-const { imgurClientID, imgurClientSecret } = getEnv();
-const imgurClient = new ImgurClient({
-  clientId: imgurClientID,
-  clientSecret: imgurClientSecret,
-});
 
 export const slashCommandHandler = async (interaction: CommandInteraction) => {
   const { commandName } = interaction;
@@ -54,6 +50,9 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
   const steps = interaction.options.get('steps')?
     interaction.options.get('steps')?.value as number :
     promts.get(interaction.user.id)?.steps as number
+  const upScaleBy = interaction.options.get('upscaleby')?
+    interaction.options.get('upscaleby')?.value as number :
+    promts.get(interaction.user.id)?.upScaleBy as number
 
   promts.set(interaction.user.id,{
     prompt: prompt,
@@ -61,52 +60,20 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
     width: width,
     height: height,
     steps: steps,
+    upScaleBy: upScaleBy,
   });
-  
-  const client = sdwebui({ apiUrl: STABLE_DIFFUSION_URL });
 
   try {
-    await interaction.deferReply();
-    const response = await client.txt2img({
-      prompt: prompt,
-      negativePrompt: negativePrompt,
-      width: width,
-      height: height,
-      steps: steps,
-      seed: -1,
-      batchSize: 1,
-      hires: {
-        steps: 0,
-        denoisingStrength: 0.7,
-        upscaler: "Latent",
-        upscaleBy: 2,
-        resizeWidthTo: 1024,
-        resizeHeigthTo: 1024,
-      }
-    });
-    console.log('parameters', response.parameters);
-
-    const info = JSON.parse(response.info);
-    console.log('info', info);
-    const fileName = `image-${info.job_timestamp}.png`;
-
-    response.images.forEach((image) => {
-      fs.writeFileSync(`./out/${fileName}`, image, 'base64');
-    });
-
-    const base64data = fs.readFileSync(`./out/${fileName}`, { encoding: "base64" })
-    const imgurResponse = await imgurClient.upload({
-      image: base64data,
-      type: 'base64'
-    });
-    console.log(imgurResponse.data);
-
+    interaction.deferReply();
+    const {fileName, seed} = await textToImage(prompt, negativePrompt, width, height, steps, upScaleBy);
+    const downloadLink = await uploadImageToDropbox(fileName);
+    
     await interaction.editReply(
-      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${imgurResponse.data.link}`
+      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${seed}\n- ${downloadLink[0]}`
     );
   } catch (error) {
     await interaction.editReply(
-      `ごめんなさい！${interaction.user.displayName}さん！画像生成に失敗したよ🥺`
+      `ごめんなさい！${interaction.user.displayName}さん！画像生成に失敗したよ🥺\n${error}`
     );
     console.log(`${error}`);
   }
@@ -129,5 +96,89 @@ const getReGenerateImageHandler = async (interaction: CommandInteraction) => {
     generateImageHandler(interaction);
   } else {
     await interaction.reply(`前回のプロンプトが見つからなかったよ🥺`);
+  }
+};
+
+const textToImage = async (
+  prompt: string,
+  negativePrompt: string,
+  width: number,
+  height: number,
+  steps: number,
+  upScaleBy: number
+) => {
+  try {
+    const client = sdwebui({ apiUrl: STABLE_DIFFUSION_URL });
+    const response = await client.txt2img({
+      prompt: prompt,
+      negativePrompt: negativePrompt,
+      width: width,
+      height: height,
+      steps: steps,
+      seed: -1,
+      batchSize: 1,
+      hires: {
+        steps: 0,
+        denoisingStrength: 0.7,
+        upscaler: 'Latent',
+        upscaleBy: upScaleBy,
+      },
+    });
+    console.log('parameters', response.parameters);
+
+    const info = JSON.parse(response.info);
+    console.log('info', info);
+    const fileName = `image-${info.job_timestamp}.png`;
+
+    response.images.forEach((image) => {
+      fs.writeFileSync(`./out/${fileName}`, image, 'base64');
+    });
+
+    return {
+      fileName: fileName,
+      seed: info.seed,
+    };
+
+  } catch (error) {
+    console.log(error);
+    throw new Error(`Stable Diffusionによる画像生成に失敗しました。`);
+  }
+};
+
+const uploadImageToDropbox = async (fileName: string) => {
+  const {
+    dropboxAccessToken,
+    dropboxRefreshToken,
+    dropboxAppKey,
+    dropboxAppSecret,
+  } = getEnv();
+
+  try {
+    const dropboxClient = new Dropbox({
+      accessToken: dropboxAccessToken,
+      refreshToken: dropboxRefreshToken,
+      clientId: dropboxAppKey,
+      clientSecret: dropboxAppSecret,
+    });
+
+    const buffer = fs.readFileSync(`./out/${fileName}`);
+    await dropboxClient.filesUpload({
+      path: `/${fileName}`,
+      contents: buffer,
+    });
+    await dropboxClient.sharingCreateSharedLinkWithSettings({
+      path: `/${fileName}`,
+    });
+    const sharingLinks = await dropboxClient.sharingListSharedLinks({
+      path: `/${fileName}`,
+      direct_only: true,
+    });
+
+    return sharingLinks.result.links.map((link) =>
+      link.url.replace('www.dropbox', 'dl.dropboxusercontent')
+    );
+  } catch (error) {
+    console.log(error);
+    throw new Error(`Dropboxへのアップロードに失敗しました。`);
   }
 };

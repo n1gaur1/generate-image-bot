@@ -1,10 +1,14 @@
+import "dotenv/config"
+
 export const getEnv = () => {
   const {
     DISCORD_BOT_TOKEN,
     DISCORD_APP_ID,
     DISCORD_GUILD_ID,
-    IMGUR_CLIENT_ID,
-    IMGUR_CLIENT_SECRET,
+    DROPBOX_ACCESS_TOKEN,
+    DROPBOX_REFRESH_TOKEN,
+    DROPBOX_APP_KEY,
+    DROPBOX_APP_SECRET,
   } = process.env;
 
   if (!DISCORD_BOT_TOKEN) {
@@ -16,18 +20,26 @@ export const getEnv = () => {
   if (!DISCORD_GUILD_ID) {
     throw Error('Please set the environment variable DISCORD_GUILD_ID.');
   }
-  if (!IMGUR_CLIENT_ID) {
-    throw Error('Please set the environment variable IMGUR_CLIENT_ID.');
+  if (!DROPBOX_ACCESS_TOKEN) {
+    throw Error('Please set the environment variable DROPBOX_ACCESS_TOKEN.');
   }
-  if (!IMGUR_CLIENT_SECRET) {
-    throw Error('Please set the environment variable IMGUR_CLIENT_SECRET.');
+  if (!DROPBOX_REFRESH_TOKEN) {
+    throw Error('Please set the environment variable DROPBOX_REFRESH_TOKEN.');
+  }
+  if (!DROPBOX_APP_KEY) {
+    throw Error('Please set the environment variable DROPBOX_APP_KEY.');
+  }
+  if (!DROPBOX_APP_SECRET) {
+    throw Error('Please set the environment variable DROPBOX_APP_SECRET.');
   }
 
   return {
     discordBotToken: DISCORD_BOT_TOKEN,
     discordAppID: DISCORD_APP_ID,
     discordGuildID: DISCORD_GUILD_ID,
-    imgurClientID: IMGUR_CLIENT_ID,
-    imgurClientSecret: IMGUR_CLIENT_SECRET,
+    dropboxAccessToken: DROPBOX_ACCESS_TOKEN,
+    dropboxRefreshToken: DROPBOX_REFRESH_TOKEN,
+    dropboxAppKey: DROPBOX_APP_KEY,
+    dropboxAppSecret: DROPBOX_APP_SECRET,
   };
 };
