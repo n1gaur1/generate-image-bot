@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 
-export const buildSlashCommands = ():
-ReturnType<typeof SlashCommandBuilder.prototype.toJSON>[] => {
+export const buildSlashCommands = (): ReturnType<typeof SlashCommandBuilder.prototype.toJSON>[] => 
+{
   return [
     new SlashCommandBuilder()
       .setName('generateimage')
@@ -42,14 +42,10 @@ ReturnType<typeof SlashCommandBuilder.prototype.toJSON>[] => {
           .setDescription("アップスケール倍数")
           .setRequired(true)
       )
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('getimage')
-      .setDescription('AIで生成した画像を取得します。')
-      .addStringOption((option) =>
+      .addNumberOption((option) =>
         option
-          .setName("filename")
-          .setDescription("ファイル名")
+          .setName("seed")
+          .setDescription("seed値")
           .setRequired(true)
       )
       .toJSON(),

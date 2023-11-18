@@ -11,6 +11,7 @@ interface Prompts {
   height: number,
   steps: number,
   upScaleBy: number,
+  fileName: string,
 };
 
 const promts = new Map<string, Prompts>();
@@ -53,23 +54,36 @@ const generateImageHandler = async (interaction: CommandInteraction) => {
   const upScaleBy = interaction.options.get('upscaleby')?
     interaction.options.get('upscaleby')?.value as number :
     promts.get(interaction.user.id)?.upScaleBy as number
-
-  promts.set(interaction.user.id,{
-    prompt: prompt,
-    negativePrompt: negativePrompt,
-    width: width,
-    height: height,
-    steps: steps,
-    upScaleBy: upScaleBy,
-  });
+  const seed = interaction.options.get('seed')?
+    interaction.options.get('seed')?.value as number : -1;
 
   try {
     interaction.deferReply();
-    const {fileName, seed} = await textToImage(prompt, negativePrompt, width, height, steps, upScaleBy);
+
+    // 前回のファイルを削除する
+    if (promts.size !== 0) {
+      const beforeFileName = promts.get(interaction.user.id)?.fileName as string
+      deleteLocalImage(beforeFileName);
+      await deleteDropboxImage(beforeFileName);
+    }
+
+    // テキストから画像ファイルを生成し、Dropboxにアップロードする
+    const {fileName, resultSeed} = await textToImage(prompt, negativePrompt, width, height, steps, upScaleBy, seed);
     const downloadLink = await uploadImageToDropbox(fileName);
+
+    // 前回値として保存する
+    promts.set(interaction.user.id,{
+      prompt: prompt,
+      negativePrompt: negativePrompt,
+      width: width,
+      height: height,
+      steps: steps,
+      upScaleBy: upScaleBy,
+      fileName: fileName,
+    });
     
     await interaction.editReply(
-      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${seed}\n- ${downloadLink[0]}`
+      `${interaction.user.displayName}さんが画像生成しました。\n- ${prompt}\n- ${negativePrompt}\n- ${resultSeed}\n- ${downloadLink[0]}`
     );
   } catch (error) {
     await interaction.editReply(
@@ -93,6 +107,9 @@ const getImageHandler = async (interaction: CommandInteraction) => {
 
 const getReGenerateImageHandler = async (interaction: CommandInteraction) => {
   if (promts.size !== 0) {
+    const fileName = promts.get(interaction.user.id)?.fileName as string
+    deleteLocalImage(fileName);
+    await deleteDropboxImage(fileName);
     generateImageHandler(interaction);
   } else {
     await interaction.reply(`前回のプロンプトが見つからなかったよ🥺`);
@@ -105,7 +122,8 @@ const textToImage = async (
   width: number,
   height: number,
   steps: number,
-  upScaleBy: number
+  upScaleBy: number,
+  seed: number
 ) => {
   try {
     const client = sdwebui({ apiUrl: STABLE_DIFFUSION_URL });
@@ -115,7 +133,7 @@ const textToImage = async (
       width: width,
       height: height,
       steps: steps,
-      seed: -1,
+      seed: seed,
       batchSize: 1,
       hires: {
         steps: 0,
@@ -136,7 +154,7 @@ const textToImage = async (
 
     return {
       fileName: fileName,
-      seed: info.seed,
+      resultSeed: info.seed,
     };
 
   } catch (error) {
@@ -180,5 +198,41 @@ const uploadImageToDropbox = async (fileName: string) => {
   } catch (error) {
     console.log(error);
     throw new Error(`Dropboxへのアップロードに失敗しました。`);
+  }
+};
+
+const deleteLocalImage = (fileName: string) => {
+  if (fs.existsSync(`./out/${fileName}`)) {
+    fs.unlinkSync(`./out/${fileName}`);
+    console.log(`${fileName} deleted successfully.`);
+  } else {
+    console.log(`${fileName} not found.`);
+  }
+};
+
+const deleteDropboxImage = async (fileName: string) => {
+  const {
+    dropboxAccessToken,
+    dropboxRefreshToken,
+    dropboxAppKey,
+    dropboxAppSecret,
+  } = getEnv();
+
+  try {
+    const dropboxClient = new Dropbox({
+      accessToken: dropboxAccessToken,
+      refreshToken: dropboxRefreshToken,
+      clientId: dropboxAppKey,
+      clientSecret: dropboxAppSecret,
+    });
+
+    await dropboxClient.filesDeleteV2({
+      path: `/${fileName}`
+    });
+
+    console.log(`${fileName} deleted successfully from Dropbox.`);
+    
+  } catch (error) {
+    console.log(`Dropboxの${fileName}の削除に失敗しました。`);
   }
 };
