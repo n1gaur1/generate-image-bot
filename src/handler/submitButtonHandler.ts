@@ -42,7 +42,7 @@ const generateImage = async (interaction: ModalSubmitInteraction) => {
     } = await textToImage(interaction);
     const downloadLink = await uploadImageToDropbox(resultFileName);
     await interaction.followUp(
-      `${interaction.user.displayName}さんが画像生成しました。${downloadLink[0]}`
+      `${interaction.user.displayName}さんが画像生成しました。\n- ${resultSeed} \n- ${downloadLink[0]}`
     );
 
     // 前回値として保存する

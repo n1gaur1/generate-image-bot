@@ -6,7 +6,7 @@ import {
   Routes,
   SlashCommandBuilder,
 } from 'discord.js';
-import { buildSlashCommands } from '../model/slashCommands';
+import { buildSlashCommands } from '../generator/slashCommands';
 
 export interface SlashCommand {
   builder: ReturnType<typeof SlashCommandBuilder.prototype.toJSON>;
